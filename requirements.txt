@@ -1,0 +1,22 @@
+# Core
+numpy
+pandas
+pyarrow        # Parquet files (data/song_meta.parquet)
+scipy
+
+# Million Song Dataset HDF5 files (.h5)
+h5py
+
+# Modelling / analysis
+scikit-learn
+
+# Plotting
+matplotlib
+seaborn
+
+# Notebooks
+jupyter
+ipykernel
+
+# Utilities
+tqdm
