@@ -49,11 +49,12 @@ def load_songs():
 def load_tracks(songs):
     """(song, track_id) pairs for our songs, without the known mismatches."""
     tracks = pd.read_csv(EXT / "unique_tracks/unique_tracks.txt", sep="<SEP>", engine="python",
-                         header=None, names=["track_id", "song_id", "artist", "title"], usecols=[0, 1])
+                         header=None, names=["track_id", "song_id", "artist", "title"],
+                         usecols=[0, 1], encoding="utf-8")
     tracks = tracks[tracks["song_id"].isin(songs["song_id"])]
 
     pat = re.compile(r"<(SO[A-Z0-9]+) (TR[A-Z0-9]+)>")
-    with open(EXT / "sid_mismatches/sid_mismatches.txt") as f:
+    with open(EXT / "sid_mismatches/sid_mismatches.txt", encoding="utf-8") as f:
         bad = pd.DataFrame([m.groups() for line in f if (m := pat.search(line))],
                            columns=["song_id", "track_id"])
 

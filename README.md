@@ -3,7 +3,7 @@
 ## Getting the data
 
 The data is not in git (`data/` is ignored). Download it once into `data/` in the repo root. The
-commands below are run from the repo root and download about 2 GB in total.
+commands below are run from the repo root and download about 4.5 GB in total.
 
 ### 1. Play counts (Taste Profile / Echo Nest triplets)
 
@@ -41,7 +41,20 @@ unzip data/external/tagtraum/msd_tagtraum_cd2.cls.zip -d data/external/tagtraum/
 
 The two `.db` files are 600–750 MB each and the server is slow, so expect them to take 15–20 minutes.
 
-### 3. Generated files
+### 3. Lyrics (musiXmatch bag of words)
+
+Used by `scripts/build_song_bow.py`. `mxm_dataset.db` is the [musiXmatch dataset](http://millionsongdataset.com/musixmatch/)
+as SQLite: word counts over the top 5,000 stemmed words for about 237k MSD tracks (table `lyrics`:
+`track_id, mxm_tid, word, count, is_test`). The script reads both files directly from `data/`.
+
+```bash
+curl -L -o data/mxm_dataset.db http://millionsongdataset.com/sites/default/files/AdditionalFiles/mxm_dataset.db
+cp data/external/unique_tracks/unique_tracks.txt data/unique_tracks.txt
+```
+
+The file is about 2.4 GB. If the download breaks off, run the same `curl` command again with `-C -` to resume it.
+
+### 4. Generated files
 
 Run these in order to build the rest of `data/`:
 
@@ -50,9 +63,15 @@ Run these in order to build the rest of `data/`:
    - `song_meta.parquet`: one row per song. Row `song = i` is song `i` in `filtered_100_10.npz`. It has
      title, artist, album, year, duration, artist popularity, genre, the top 5 Last.fm tags, listeners and plays.
    - `song_tags.parquet`: all Last.fm tags per song, as `song, tag, weight` (weight 0–100).
+3. `python scripts/build_song_bow.py` creates:
+   - `song_bow.parquet`: lyrics bag of words per song, as `song, word, count, n_tracks`. Counts are
+     summed over all of the song's tracks.
+   - `song_bow_coverage.parquet`: for each song, how many tracks it has, how many of them have lyrics, and `has_bow`.
+   - `filtered_100_10_track_song_mapping.csv`: every song–track pair, with a flag for whether the track has lyrics.
 
 ```python
 import pandas as pd
 songs = pd.read_parquet("data/song_meta.parquet")
 tags = pd.read_parquet("data/song_tags.parquet")
+bow = pd.read_parquet("data/song_bow.parquet")
 ```
