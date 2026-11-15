@@ -13,10 +13,8 @@
 set -eo pipefail
 cd "$LS_SUBCWD"
 
-source /dtu/projects/02613_2025/conda/conda_init.sh
-conda activate 02613
-
 KS=(5 10 15 20 25 30)
 K=${KS[$((LSB_JOBINDEX - 1))]}
+echo "LSB_JOBINDEX=$LSB_JOBINDEX, K=$K"
 
-python scripts/run_lda.py "$K"  --seed 0 --n-iter 200
+.venv/bin/python scripts/run_lda.py "$K" --seed 2807 --n-iter 200
