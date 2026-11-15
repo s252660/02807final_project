@@ -9,6 +9,7 @@ h5py
 
 # Modelling / analysis
 scikit-learn
+numba          
 
 # Plotting
 matplotlib
