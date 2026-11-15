@@ -22,7 +22,6 @@ A run whose folder already has model.npz is skipped, so a killed job can be rest
 """
 
 import argparse
-import sys
 import time
 from pathlib import Path
 
@@ -36,7 +35,6 @@ from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
 # 1. Config
 ROOT = Path(__file__).resolve().parent.parent      # repo root (this file is in scripts/)
-sys.path.insert(0, str(ROOT))                       # so lda_gibbs.py in the repo root can be imported
 from lda_gibbs import LDA
 
 DATA = ROOT / "data"
