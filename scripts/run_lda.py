@@ -3,6 +3,8 @@
 Command:
     python scripts/run_lda.py 10                      one run, K = 10
     python scripts/run_lda.py 5 10 15 --n-iter 500    several runs, one after the other
+    python scripts/run_lda.py 6 --n-iter 500 --seed 1,2,3,4,5
+    python scripts/run_lda.py 6 --n-iter 500 --seed 1 2 3 4 5
 
 Input:
     data/song_bow.parquet             (from scripts/build_song_bow.py)
@@ -31,11 +33,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
 # 1. Config
 ROOT = Path(__file__).resolve().parent.parent      # repo root (this file is in scripts/)
-from lda_gibbs import LDA
+try:
+    from lda_gibbs import LDA
+except ImportError:
+    from scripts.lda_gibbs import LDA
+try:
+    from stopwords import ALL_STOP_WORDS
+except ImportError:
+    from scripts.stopwords import ALL_STOP_WORDS
+# from stopwords import ALL_STOP_WORDS
+# from lda_gibbs import LDA
 
 DATA = ROOT / "data"
 OUT = DATA / "lda_grid_search"
@@ -44,7 +54,8 @@ OUT = DATA / "lda_grid_search"
 FILLERS = {"oh", "ooh", "yeah", "yea", "la", "na", "da", "hey", "uh", "ah", "whoa", "mmm", "ha",
            "doo", "ya", "yo", "huh", "woah", "ohh", "ay", "eh", "im", "dont", "aint", "caus", "gonna",
            "wanna", "got", "get", "let", "just", "like"}
-STOP = set(ENGLISH_STOP_WORDS) | FILLERS
+
+STOP = ALL_STOP_WORDS | FILLERS 
 MAX_DF = 0.4      # drop words found in more than 40% of songs
 MIN_DF = 20       # drop words found in fewer than 20 songs
 
@@ -121,28 +132,41 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("ks", type=int, nargs="+", help="numbers of topics to try")
     parser.add_argument("--n-iter", type=int, default=200, help="Gibbs sweeps per run")
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--seed",
+        nargs="+",
+        default=["0"],
+        help="one or more random seeds (for example: --seed 1,2,3 or --seed 1 2 3)",
+    )
     parser.add_argument("--n-top", type=int, default=15, help="words listed per topic")
     args = parser.parse_args()
+
+    seeds = []
+    for seed_arg in args.seed:
+        for seed_text in seed_arg.split(","):
+            seed_text = seed_text.strip()
+            if seed_text:
+                seeds.append(int(seed_text))
 
     # 2. Load data
     X, songs, vocab = load_counts()
     print(f"{X.shape[0]:,} songs, {len(vocab):,} words, {int(X.sum()):,} tokens", flush=True)
 
-    # 3. Fit LDA for each K
+    # 3. Fit LDA for each K and seed
     for k in args.ks:
-        folder = OUT / f"k{k}_seed{args.seed}"
-        if (folder / "model.npz").exists():
-            print(f"K={k}: {folder} already done, skipping", flush=True)
-            continue
-        
-        start = time.time()
-        model = LDA(n_topics=k, n_iter=args.n_iter, random_state=args.seed).fit(X)
-        save_run(model, folder, songs, vocab, args.n_top)
-        rise = late_rise(model.log_likelihood)
+        for seed in seeds:
+            folder = OUT / f"k{k}_seed{seed}"
+            if (folder / "model.npz").exists():
+                print(f"K={k}, seed={seed}: {folder} already done, skipping", flush=True)
+                continue
+            
+            start = time.time()
+            model = LDA(n_topics=k, n_iter=args.n_iter, random_state=seed).fit(X)
+            save_run(model, folder, songs, vocab, args.n_top)
+            rise = late_rise(model.log_likelihood)
 
-        print(f"K={k}: done in {(time.time() - start) / 60:.1f} min, ", flush=True)
-        print(f"K={k}: rise in last quarter of sweeps = {rise:.1%}", flush=True)
+            print(f"K={k}, seed={seed}: done in {(time.time() - start) / 60:.1f} min, ", flush=True)
+            print(f"K={k}, seed={seed}: rise in last quarter of sweeps = {rise:.1%}", flush=True)
 
 if __name__ == "__main__":
     main()
